@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>숫자 쓰기 놀이</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #e0f7fa;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            /* Prevent scrolling while drawing */
+            touch-action: none;
+        }
+
+        h1 {
+            color: #006064;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .number-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .num-btn {
+            background-color: #fff;
+            border: 3px solid #00bcd4;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            font-family: 'Jua', sans-serif;
+            color: #00bcd4;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .num-btn:hover {
+            transform: scale(1.1);
+            background-color: #e0f2f1;
+        }
+
+        .num-btn.active {
+            background-color: #00bcd4;
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(0, 188, 212, 0.4);
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 300px;
+            height: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border: 8px solid #b2ebf2;
+            overflow: hidden;
+        }
+
+        /* Guide layer (background number) */
+        #guide-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 250px;
+            color: #e0e0e0;
+            pointer-events: none;
+            /* Let clicks pass through */
+            user-select: none;
+            z-index: 1;
+        }
+
+        /* Canvas for user drawing */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        .btn-action {
+            background-color: #ff7043;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            font-family: 'Jua', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        /* Success Message Overlay */
+        #success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        #success-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .success-text {
+            font-size: 4em;
+            color: #ffca28;
+            text-shadow: 2px 2px 0px #fff, 4px 4px 0px #ff6f00;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-20px);
+            }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>숫자 쓰기 놀이</h1>
+
+    <div class="number-selector">
+        <!-- Generated by JS -->
+    </div>
+
+    <div id="canvas-container">
+        <div id="guide-layer">1</div>
+        <canvas id="drawCanvas" width="300" height="400"></canvas>
+    </div>
+
+    <div class="controls">
+        <button class="btn-action" onclick="resetCanvas()">지우기 (다시하기)</button>
+    </div>
+
+    <div id="success-overlay">
+        <div class="success-text">참 잘했어요!</div>
+        <button class="btn-action" style="background:#4caf50; margin-top:20px;" onclick="nextNumber()">다음 숫자!</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        const guideEl = document.getElementById('guide-layer');
+        const selectorContainer = document.querySelector('.number-selector');
+        const successOverlay = document.getElementById('success-overlay');
+
+        // Settings
+        let currentNumber = 1;
+        let isDrawing = false;
+        const width = 300;
+        const height = 400;
+
+        // Validation Buffer (Hidden Canvas)
+        const targetCanvas = document.createElement('canvas');
+        targetCanvas.width = width;
+        targetCanvas.height = height;
+        const targetCtx = targetCanvas.getContext('2d');
+
+        // Initialize Number Buttons
+        for (let i = 1; i <= 9; i++) {
+            const btn = document.createElement('button');
+            btn.className = `num-btn ${i === 1 ? 'active' : ''}`;
+            btn.innerText = i;
+            btn.onclick = () => setNumber(i);
+            selectorContainer.appendChild(btn);
+        }
+
+        function setNumber(num) {
+            currentNumber = num;
+            guideEl.innerText = num;
+
+            // Update buttons visually
+            document.querySelectorAll('.num-btn').forEach(b => {
+                b.classList.toggle('active', parseInt(b.innerText) === num);
+            });
+
+            resetCanvas();
+        }
+
+        // Setup Drawing Context
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 35; // Thick lines for easier coverage
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // --- Drawing Logic ---
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDraw(e) {
+            isDrawing = true;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            e.preventDefault();
+        }
+
+        function moveDraw(e) {
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            e.preventDefault();
+        }
+
+        function endDraw() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            checkSuccess(); // Verify logic on mouse up
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', moveDraw);
+        window.addEventListener('mouseup', endDraw); // Window to catch out of bounds
+
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', moveDraw, { passive: false });
+        canvas.addEventListener('touchend', endDraw);
+        canvas.addEventListener('touchcancel', endDraw);
+
+        function resetCanvas() {
+            ctx.clearRect(0, 0, width, height);
+            closeSuccess();
+        }
+
+        // --- Validation Logic ---
+        // We draw the perfect number onto an invisible canvas (targetCtx)
+        // Then we compare pixel overlap
+        function checkSuccess() {
+            // 1. Draw Target
+            targetCtx.clearRect(0, 0, width, height);
+            targetCtx.font = "250px 'Jua', sans-serif"; // Must match CSS size/font roughly
+            targetCtx.textAlign = "center";
+            targetCtx.textBaseline = "middle";
+            targetCtx.fillStyle = "black";
+            targetCtx.fillText(currentNumber, width / 2, height / 2);
+
+            // 2. Get Pixels
+            // Note: Optimizing by checking slightly fewer pixels could be good if slow, but for 300x400 it's fine.
+            const userImg = ctx.getImageData(0, 0, width, height).data;
+            const targetImg = targetCtx.getImageData(0, 0, width, height).data;
+
+            let targetPixels = 0;
+            let coveredPixels = 0;
+
+            // Iterate (every 4th value is Alpha)
+            for (let i = 3; i < targetImg.length; i += 4) {
+                // If this pixel is part of the target number
+                if (targetImg[i] > 100) {
+                    targetPixels++;
+
+                    // Check if user also drew here (Alpha > 0)
+                    if (userImg[i] > 50) {
+                        coveredPixels++;
+                    }
+                }
+            }
+
+            if (targetPixels === 0) return; // Should not happen
+
+            const coverage = coveredPixels / targetPixels;
+            console.log(`Coverage: ${(coverage * 100).toFixed(1)}%`);
+
+            // Threshold: 70% coverage deemed success
+            if (coverage > 0.60) {
+                showSuccess();
+            }
+        }
+
+        // --- Effects ---
+        function showSuccess() {
+            successOverlay.classList.add('show');
+            createConfetti();
+            const audio = new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg');
+            // audio.play().catch(e => {}); 
+        }
+
+        function nextNumber() {
+            let next = currentNumber + 1;
+            if (next > 9) next = 1; // Loop back to 1
+            setNumber(next);
+            closeSuccess();
+        }
+
+        function closeSuccess() {
+            successOverlay.classList.remove('show');
+            // Remove confetti
+            document.querySelectorAll('.confetti').forEach(el => el.remove());
+        }
+
+        function createConfetti() {
+            const colors = ['#f44336', '#2196f3', '#ffeb3b', '#4caf50', '#ff9800'];
+            for (let i = 0; i < 50; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(conf);
+            }
+        }
+    </script>
+</body>
+
+</html>
