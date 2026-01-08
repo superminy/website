@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>한글 자음 쓰기 놀이</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #e8f5e9;
+            /* Light Green theme */
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        h1 {
+            color: #2e7d32;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .home-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #fff;
+            border: 2px solid #4caf50;
+            border-radius: 20px;
+            padding: 10px 15px;
+            text-decoration: none;
+            color: #4caf50;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+            z-index: 1000;
+        }
+
+        .home-btn:hover {
+            transform: scale(1.05);
+            background: #e8f5e9;
+        }
+
+        .selector-container {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .char-btn {
+            background-color: #fff;
+            border: 2px solid #66bb6a;
+            border-radius: 10px;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            font-family: 'Jua', sans-serif;
+            color: #2e7d32;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .char-btn:hover {
+            transform: scale(1.1);
+            background-color: #c8e6c9;
+        }
+
+        .char-btn.active {
+            background-color: #4caf50;
+            color: white;
+            border-color: #2e7d32;
+            transform: scale(1.15);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 300px;
+            height: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border: 8px solid #a5d6a7;
+            overflow: hidden;
+        }
+
+        #guide-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 250px;
+            color: #e0e0e0;
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+        }
+
+        #arrow-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        .btn-action {
+            background-color: #ff7043;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            font-family: 'Jua', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Success Message Overlay */
+        #success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        #success-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .success-text {
+            font-size: 4em;
+            color: #ffca28;
+            /* Amber */
+            text-shadow: 2px 2px 0px #fff, 4px 4px 0px #ff6f00;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-20px);
+            }
+        }
+
+        /* Arrow Styles */
+        .guide-arrow {
+            fill: none;
+            stroke: rgba(255, 112, 67, 0.6);
+            stroke-width: 5;
+            stroke-dasharray: 10 5;
+            marker-end: url(#arrowhead);
+            animation: dash 1s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -15;
+            }
+        }
+
+        .stroke-number {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 87, 34, 0.9);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 4;
+            transform: translate(-50%, -50%);
+            /* Center over coordinate */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <a href="index.html" class="home-btn">🏠 홈으로</a>
+    <h1>한글 자음 쓰기</h1>
+
+    <div class="selector-container" id="selector"></div>
+
+    <div id="canvas-container">
+        <div id="guide-layer">ㄱ</div>
+        <!-- SVG for Arrows -->
+        <svg id="arrow-layer" width="300" height="400">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="rgba(255, 112, 67, 0.6)" />
+                </marker>
+            </defs>
+            <!-- Paths will be injected JS -->
+        </svg>
+        <canvas id="drawCanvas" width="300" height="400"></canvas>
+    </div>
+
+    <div class="controls">
+        <button class="btn-action" onclick="resetCanvas()">지우기 (다시하기)</button>
+    </div>
+
+    <div id="success-overlay">
+        <div class="success-text">참 잘했어요!</div>
+        <button class="btn-action" style="background:#4caf50; margin-top:20px;" onclick="nextChar()">다음 글자!</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        const guideEl = document.getElementById('guide-layer');
+        const arrowLayer = document.getElementById('arrow-layer');
+        const successOverlay = document.getElementById('success-overlay');
+        const selectorContainer = document.getElementById('selector');
+
+        const width = 300;
+        const height = 400;
+
+        // Data: Consonants with Checkpoints and Arrow Paths
+        // Checkpoints: Array of {x, y}. User must pass near these in order.
+        // Paths: SVG path d strings for arrows.
+        const consonants = [
+            {
+                char: 'ㄱ',
+                // Tighter coords for Jua
+                checkpoints: [{ x: 80, y: 110 }, { x: 220, y: 110 }, { x: 220, y: 290 }],
+                arrowPaths: ["M 80 110 L 220 110 L 220 290"],
+                strokeNums: [{ x: 80, y: 110, text: "1" }]
+            },
+            {
+                char: 'ㄴ',
+                checkpoints: [{ x: 80, y: 110 }, { x: 80, y: 290 }, { x: 220, y: 290 }],
+                arrowPaths: ["M 80 110 L 80 290 L 220 290"],
+                strokeNums: [{ x: 80, y: 110, text: "1" }]
+            },
+            {
+                char: 'ㄷ',
+                checkpoints: [
+                    { x: 80, y: 110 }, { x: 220, y: 110 },
+                    { x: 80, y: 150 }, { x: 80, y: 290 }, { x: 220, y: 290 }
+                ],
+                arrowPaths: [
+                    "M 85 110 L 215 110", // Top, shortened slightly to avoid edge
+                    "M 85 150 L 85 290 L 215 290"
+                ],
+                strokeNums: [
+                    { x: 85, y: 110, text: "1" },
+                    { x: 85, y: 150, text: "2" }
+                ]
+            },
+            {
+                char: 'ㄹ',
+                checkpoints: [
+                    { x: 80, y: 110 }, { x: 220, y: 110 }, { x: 220, y: 180 },
+                    { x: 80, y: 180 }, { x: 80, y: 290 }, { x: 220, y: 290 }
+                ],
+                arrowPaths: [
+                    "M 80 110 L 220 110 L 220 180",
+                    "M 80 180 L 220 180",
+                    "M 80 180 L 80 290 L 220 290"
+                ],
+                strokeNums: [
+                    { x: 80, y: 110, text: "1" },
+                    { x: 80, y: 180, text: "2" },
+                    { x: 80, y: 220, text: "3" } // Offset slightly down on vertical
+                ]
+            },
+            {
+                char: 'ㅁ',
+                // Jua ㅁ box is roughly 80,120 to 220,280
+                checkpoints: [
+                    { x: 85, y: 120 }, { x: 85, y: 280 },
+                    { x: 85, y: 120 }, { x: 215, y: 120 }, { x: 215, y: 280 },
+                    { x: 85, y: 280 }, { x: 215, y: 280 }
+                ],
+                arrowPaths: [
+                    "M 85 120 L 85 280",
+                    "M 85 120 L 215 120 L 215 280",
+                    "M 85 280 L 215 280"
+                ],
+                strokeNums: [
+                    { x: 85, y: 120, text: "1" },
+                    { x: 105, y: 120, text: "2" }, // visual offset
+                    { x: 85, y: 280, text: "3" }
+                ]
+            },
+            {
+                char: 'ㅂ',
+                checkpoints: [
+                    { x: 80, y: 110 }, { x: 80, y: 290 },
+                    { x: 220, y: 110 }, { x: 220, y: 290 },
+                    { x: 80, y: 200 }, { x: 220, y: 200 },
+                    { x: 80, y: 290 }, { x: 220, y: 290 }
+                ],
+                arrowPaths: [
+                    "M 85 110 L 85 290",
+                    "M 215 110 L 215 290",
+                    "M 85 200 L 215 200",
+                    "M 85 290 L 215 290"
+                ],
+                strokeNums: [
+                    { x: 85, y: 110, text: "1" },
+                    { x: 215, y: 110, text: "2" },
+                    { x: 150, y: 200, text: "3" }, // Center
+                    { x: 150, y: 290, text: "4" }  // Center
+                ]
+            },
+            {
+                char: 'ㅅ',
+                checkpoints: [
+                    { x: 150, y: 90 }, { x: 70, y: 290 },
+                    { x: 150, y: 140 }, { x: 230, y: 290 }
+                ],
+                arrowPaths: [
+                    "M 150 90 L 70 290",
+                    "M 150 140 L 230 290"
+                ],
+                strokeNums: [
+                    { x: 150, y: 90, text: "1" },
+                    { x: 180, y: 160, text: "2" }
+                ]
+            },
+            {
+                char: 'ㅇ',
+                checkpoints: [
+                    { x: 150, y: 90 }, { x: 70, y: 200 }, { x: 150, y: 310 }, { x: 230, y: 200 }
+                ],
+                arrowPaths: [
+                    "M 150 90 C 50 90 50 310 150 310 C 250 310 250 90 150 90"
+                ],
+                strokeNums: [{ x: 150, y: 90, text: "1" }]
+            },
+            {
+                char: 'ㅈ',
+                checkpoints: [
+                    { x: 70, y: 90 }, { x: 230, y: 90 },
+                    { x: 150, y: 90 }, { x: 70, y: 290 },
+                    { x: 150, y: 190 }, { x: 230, y: 290 }
+                ],
+                arrowPaths: [
+                    "M 70 90 L 230 90",
+                    "M 150 90 L 70 290",
+                    "M 150 190 L 230 290"
+                ],
+                strokeNums: [
+                    { x: 70, y: 90, text: "1" },
+                    { x: 150, y: 90, text: "2" },
+                    { x: 150, y: 190, text: "3" }
+                ]
+            },
+            {
+                char: 'ㅊ',
+                checkpoints: [
+                    { x: 80, y: 70 }, { x: 220, y: 70 },
+                    { x: 70, y: 100 }, { x: 230, y: 100 },
+                    { x: 150, y: 100 }, { x: 70, y: 290 },
+                    { x: 150, y: 190 }, { x: 230, y: 290 }
+                ],
+                arrowPaths: [
+                    "M 80 70 L 220 70",
+                    "M 70 100 L 230 100",
+                    "M 150 100 L 70 290",
+                    "M 150 190 L 230 290"
+                ],
+                strokeNums: [
+                    { x: 80, y: 70, text: "1" },
+                    { x: 70, y: 100, text: "2" },
+                    { x: 150, y: 100, text: "3" },
+                    { x: 150, y: 190, text: "4" }
+                ]
+            },
+            {
+                char: 'ㅋ',
+                checkpoints: [
+                    { x: 80, y: 110 }, { x: 220, y: 110 }, { x: 220, y: 290 },
+                    { x: 80, y: 200 }, { x: 220, y: 200 }
+                ],
+                arrowPaths: [
+                    "M 80 110 L 220 110 L 220 290",
+                    "M 80 200 L 220 200"
+                ],
+                strokeNums: [
+                    { x: 80, y: 110, text: "1" },
+                    { x: 80, y: 200, text: "2" }
+                ]
+            },
+            {
+                char: 'ㅌ',
+                checkpoints: [
+                    { x: 80, y: 110 }, { x: 220, y: 110 },
+                    { x: 80, y: 200 }, { x: 220, y: 200 },
+                    { x: 80, y: 110 }, { x: 80, y: 290 }, { x: 220, y: 290 }
+                ],
+                arrowPaths: [
+                    "M 80 110 L 220 110",
+                    "M 80 200 L 220 200",
+                    "M 80 110 L 80 290 L 220 290"
+                ],
+                strokeNums: [
+                    { x: 80, y: 110, text: "1" },
+                    { x: 80, y: 200, text: "2" },
+                    { x: 80, y: 230, text: "3" } // Offset
+                ]
+            },
+            {
+                char: 'ㅍ',
+                checkpoints: [
+                    { x: 70, y: 110 }, { x: 230, y: 110 },
+                    { x: 100, y: 110 }, { x: 100, y: 280 },
+                    { x: 200, y: 110 }, { x: 200, y: 280 },
+                    { x: 70, y: 280 }, { x: 230, y: 280 }
+                ],
+                arrowPaths: [
+                    "M 70 110 L 230 110",
+                    "M 100 110 L 100 280",
+                    "M 200 110 L 200 280",
+                    "M 70 280 L 230 280"
+                ],
+                strokeNums: [
+                    { x: 70, y: 110, text: "1" },
+                    { x: 100, y: 110, text: "2" },
+                    { x: 200, y: 110, text: "3" },
+                    { x: 70, y: 280, text: "4" }
+                ]
+            },
+            {
+                char: 'ㅎ',
+                checkpoints: [
+                    { x: 100, y: 70 }, { x: 200, y: 70 },
+                    { x: 70, y: 120 }, { x: 230, y: 120 },
+                    { x: 150, y: 170 }, { x: 70, y: 250 }, { x: 150, y: 320 }, { x: 230, y: 250 }
+                ],
+                arrowPaths: [
+                    "M 100 70 L 200 70",
+                    "M 70 120 L 230 120",
+                    "M 150 170 C 40 170 40 320 150 320 C 260 320 260 170 150 170"
+                ],
+                strokeNums: [
+                    { x: 100, y: 70, text: "1" },
+                    { x: 70, y: 120, text: "2" },
+                    { x: 150, y: 170, text: "3" }
+                ]
+            }
+        ];
+
+        // Simplifying for MVP: All basic consonants, but only precise logic for ㄱ, ㄴ. Others will use pixel check only for now to save time, then we iterate.
+        // Actually, let's implement the "Ordered Checkpoint" system for the first few to demonstrate.
+
+        let currentIndex = 0;
+        let isDrawing = false;
+        let passedCheckpoints = []; // Indices of passed checkpoints for current char
+        let totalCheckpoints = 0;
+
+        // Init Selector
+        const charList = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+        charList.forEach((c, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'char-btn';
+            btn.innerText = c;
+            btn.onclick = () => setChar(idx);
+            selectorContainer.appendChild(btn);
+        });
+
+        function setChar(index) {
+            currentIndex = index;
+            const char = charList[index];
+            guideEl.innerText = char;
+
+            // Highlight button
+            document.querySelectorAll('.char-btn').forEach((b, i) => {
+                b.classList.toggle('active', i === index);
+            });
+
+            // Draw Arrows
+            drawArrows(char);
+
+            // Reset Logic
+            resetCanvas();
+        }
+
+        function drawArrows(char) {
+            // Clear existing arrows and numbers
+            const existing = arrowLayer.querySelectorAll('path');
+            existing.forEach(e => e.remove());
+            const existingNums = arrowLayer.parentNode.querySelectorAll('.stroke-number');
+            existingNums.forEach(e => e.remove());
+
+            // Get Data
+            const data = consonants[currentIndex];
+            if (data.char !== char) console.warn("Character mismatch");
+
+            if (data && data.arrowPaths) {
+                // Draw Paths
+                data.arrowPaths.forEach(pathD => {
+                    const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    pathEl.setAttribute("d", pathD);
+                    pathEl.setAttribute("class", "guide-arrow");
+                    arrowLayer.appendChild(pathEl);
+                });
+
+                // Draw Stroke Numbers
+                if (data.strokeNums) {
+                    data.strokeNums.forEach(n => {
+                        const numEl = document.createElement('div');
+                        numEl.className = 'stroke-number';
+                        numEl.innerText = n.text;
+                        numEl.style.left = n.x + 'px';
+                        numEl.style.top = n.y + 'px';
+                        arrowLayer.parentNode.appendChild(numEl);
+                    });
+                }
+
+                // Set Checkpoints
+                if (data.checkpoints) {
+                    totalCheckpoints = data.checkpoints;
+                    passedCheckpoints = new Array(totalCheckpoints.length).fill(false);
+                } else {
+                    totalCheckpoints = [];
+                    passedCheckpoints = [];
+                }
+            } else {
+                totalCheckpoints = [];
+                passedCheckpoints = [];
+            }
+        }
+
+        // --- Drawing Logic ---
+        ctx.strokeStyle = '#2e7d32'; // Dark Green
+        ctx.lineWidth = 35;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDraw(e) {
+            isDrawing = true;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            validateCheckpoint(pos.x, pos.y); // Check start
+            e.preventDefault();
+        }
+
+        function moveDraw(e) {
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            validateCheckpoint(pos.x, pos.y);
+            e.preventDefault();
+        }
+
+        function endDraw() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            checkSuccess();
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', moveDraw);
+        window.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', moveDraw, { passive: false });
+        canvas.addEventListener('touchend', endDraw);
+
+        function resetCanvas() {
+            ctx.clearRect(0, 0, width, height);
+            closeSuccess();
+            // Reset checkpoints
+            if (totalCheckpoints.length > 0) {
+                passedCheckpoints = new Array(totalCheckpoints.length).fill(false);
+            }
+        }
+
+        function validateCheckpoint(x, y) {
+            if (totalCheckpoints.length === 0) return;
+
+            // Find the *next* unpassed checkpoint
+            const nextIndex = passedCheckpoints.indexOf(false);
+            if (nextIndex === -1) return; // All passed
+
+            const target = totalCheckpoints[nextIndex];
+            const dist = Math.sqrt(Math.pow(x - target.x, 2) + Math.pow(y - target.y, 2));
+
+            // Radius of acceptance
+            if (dist < 50) {
+                passedCheckpoints[nextIndex] = true;
+                console.log(`Checkpoint ${nextIndex} passed!`);
+            }
+        }
+
+        function checkSuccess() {
+            // 1. Order Check
+            if (totalCheckpoints.length > 0) {
+                const allPassed = passedCheckpoints.every(p => p === true);
+                if (!allPassed) {
+                    console.log("Order check failed");
+                    return; // Strict order required
+                }
+            }
+
+            // 2. Pixel Coverage Check (Validation Buffer)
+            // Create temp buffer
+            const targetCanvas = document.createElement('canvas');
+            targetCanvas.width = width;
+            targetCanvas.height = height;
+            const targetCtx = targetCanvas.getContext('2d');
+
+            targetCtx.font = "250px 'Jua', sans-serif";
+            targetCtx.textAlign = "center";
+            targetCtx.textBaseline = "middle";
+            targetCtx.fillStyle = "black";
+            targetCtx.fillText(charList[currentIndex], width / 2, height / 2);
+
+            const userImg = ctx.getImageData(0, 0, width, height).data;
+            const targetImg = targetCtx.getImageData(0, 0, width, height).data;
+
+            let targetPixels = 0;
+            let coveredPixels = 0;
+
+            for (let i = 3; i < targetImg.length; i += 4) {
+                if (targetImg[i] > 100) {
+                    targetPixels++;
+                    if (userImg[i] > 50) coveredPixels++;
+                }
+            }
+
+            const coverage = coveredPixels / targetPixels;
+            console.log(`Coverage: ${(coverage * 100).toFixed(1)}%`);
+
+            if (coverage > 0.55) { // Slightly lower threshold for consonants as they are complex
+                showSuccess();
+            }
+        }
+
+        let autoAdvanceTimer = null;
+        function showSuccess() {
+            successOverlay.classList.add('show');
+            const audio = new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg');
+            // audio.play().catch(e => {});
+
+            autoAdvanceTimer = setTimeout(() => {
+                nextChar();
+            }, 3000);
+        }
+
+        function nextChar() {
+            if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+            let next = currentIndex + 1;
+            if (next >= charList.length) next = 0;
+            setChar(next);
+            closeSuccess();
+        }
+
+        function closeSuccess() {
+            successOverlay.classList.remove('show');
+        }
+
+        // Init
+        setChar(0); // Start with ㄱ
+
+    </script>
+</body>
+
+</html>

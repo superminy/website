@@ -180,11 +180,33 @@
                 opacity: 0;
             }
         }
+
+        .home-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #fff;
+            border: 2px solid #00bcd4;
+            border-radius: 20px;
+            padding: 10px 15px;
+            text-decoration: none;
+            color: #00bcd4;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+            z-index: 1000;
+        }
+
+        .home-btn:hover {
+            transform: scale(1.05);
+            background: #e0f7fa;
+        }
     </style>
 </head>
 
 <body>
 
+    <a href="index.html" class="home-btn">🏠 홈으로</a>
     <h1>숫자 쓰기 놀이</h1>
 
     <div class="number-selector">
@@ -343,14 +365,22 @@
         }
 
         // --- Effects ---
+        let autoAdvanceTimer = null;
+
         function showSuccess() {
             successOverlay.classList.add('show');
             createConfetti();
             const audio = new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg');
-            // audio.play().catch(e => {}); 
+            // audio.play().catch(e => {});
+
+            // Auto-advance after 3 seconds
+            autoAdvanceTimer = setTimeout(() => {
+                nextNumber();
+            }, 3000);
         }
 
         function nextNumber() {
+            if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer); // Prevent double trigger
             let next = currentNumber + 1;
             if (next > 9) next = 1; // Loop back to 1
             setNumber(next);
